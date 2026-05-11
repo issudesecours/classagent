@@ -49,6 +49,20 @@ _session_lock = asyncio.Lock()
 _current_session: Session | None = None
 
 
+async def _reject_websocket_if_origin_bad(websocket: WebSocket) -> bool:
+    """Return True if caller should abort (already closed). CORS does not apply to WebSockets."""
+    if _allow_origins == ["*"]:
+        return False
+    origin = websocket.headers.get("origin") or websocket.headers.get("sec-websocket-origin")
+    if not origin or origin.rstrip("/") not in {o.rstrip("/") for o in _allow_origins}:
+        log.warning(
+            f"WebSocket rejected: origin={origin!r} allowed={_allow_origins!r} path={websocket.scope.get('path')}"
+        )
+        await websocket.close(code=1008, reason="Origin not allowed")
+        return True
+    return False
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -56,6 +70,8 @@ async def health() -> dict[str, str]:
 
 @app.websocket("/ws/student")
 async def ws_student(websocket: WebSocket) -> None:
+    if await _reject_websocket_if_origin_bad(websocket):
+        return
     await websocket.accept()
     await broadcaster.subscribe(websocket)
     try:
@@ -77,8 +93,11 @@ async def ws_teacher(websocket: WebSocket) -> None:
 
     Final:  {"type": "stop"} (optional — disconnect also stops)
     """
-    await websocket.accept()
     global _current_session
+
+    if await _reject_websocket_if_origin_bad(websocket):
+        return
+    await websocket.accept()
 
     async with _session_lock:
         if _current_session is not None:
