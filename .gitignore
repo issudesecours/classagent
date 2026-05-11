@@ -1,0 +1,48 @@
+# ─── Node / Next.js ──────────────────────────────────────────────────────
+node_modules
+.next
+out
+next-env.d.ts
+*.tsbuildinfo
+
+# ─── Python / uv ─────────────────────────────────────────────────────────
+**/__pycache__
+*.pyc
+*.pyo
+.venv
+backend/.venv
+
+# ─── Env / secrets ───────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+!**/.env.example
+
+# ─── Logs ────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Session output ──────────────────────────────────────────────────────
+backend/data
+data
+
+# ─── Editors / OS ────────────────────────────────────────────────────────
+.DS_Store
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# ─── Tooling ─────────────────────────────────────────────────────────────
+.claude
+.aider*
+.cursor*
+
+# ─── Screenshots dropped at root ─────────────────────────────────────────
+Capture d*.png
+Capture d*.jpg
+Screenshot*.png

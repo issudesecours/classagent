@@ -1,0 +1,14 @@
+[project]
+name = "classagent-backend"
+version = "0.1.0"
+description = "Live lecture transcription + agent orchestrator"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.5",
+    "uvicorn[standard]>=0.32.1",
+    "python-dotenv>=1.0.1",
+    "openai>=1.60.0",
+    "openai-agents>=0.17.1",
+    "websockets>=14.1",
+    "loguru>=0.7.2",
+]
