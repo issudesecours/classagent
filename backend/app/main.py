@@ -1,5 +1,7 @@
 import asyncio
 import json
+import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -10,15 +12,33 @@ from .broadcaster import Broadcaster
 from .logging_config import configure_logging
 from .session import Session
 
-load_dotenv()
+# Uvicorn --reload spawns a worker with a cwd/env that may miss .env unless
+# loaded from the backend package root (next to pyproject.toml).
+_backend_root = Path(__file__).resolve().parent.parent
+load_dotenv(_backend_root / ".env")
 configure_logging()
 log = logger.bind(tag="api")
 
+if not (os.getenv("OPENAI_API_KEY") or "").strip():
+    log.warning(
+        "OPENAI_API_KEY is unset or empty — set it in backend/.env; Whisper will fail."
+    )
+
 app = FastAPI(title="ClassAgent")
+
+# Comma-separated list, e.g. https://app.vercel.app,http://localhost:3000
+# Use * for local dev only.
+_origins_raw = (os.environ.get("ALLOW_ORIGINS") or "*").strip()
+if _origins_raw == "*":
+    _allow_origins: list[str] = ["*"]
+else:
+    _allow_origins = [o.strip() for o in _origins_raw.split(",") if o.strip()]
+    if not _allow_origins:
+        _allow_origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

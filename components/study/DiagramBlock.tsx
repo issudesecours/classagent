@@ -6,6 +6,18 @@ interface Props {
   source: string;
 }
 
+/** LLMs often wrap Mermaid in markdown fences; the renderer needs raw syntax only. */
+function normalizeMermaidSource(raw: string): string {
+  let s = raw.trim();
+  if (!s.startsWith("```")) return s;
+  const firstNl = s.indexOf("\n");
+  if (firstNl === -1) return s.replace(/^```\w*\s*/, "").replace(/```\s*$/, "").trim();
+  s = s.slice(firstNl + 1);
+  const end = s.lastIndexOf("```");
+  if (end !== -1) s = s.slice(0, end);
+  return s.trim();
+}
+
 let mermaidInitialized = false;
 
 async function loadMermaid() {
@@ -38,7 +50,8 @@ export function DiagramBlock({ source }: Props) {
     (async () => {
       try {
         const mermaid = await loadMermaid();
-        const { svg } = await mermaid.render(renderId, source.trim());
+        const cleaned = normalizeMermaidSource(source);
+        const { svg } = await mermaid.render(renderId, cleaned);
         if (!cancelled) setSvg(svg);
       } catch (e) {
         if (!cancelled) {

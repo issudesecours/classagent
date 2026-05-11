@@ -1,0 +1,8 @@
+# Renomme en Caddyfile et remplace api.example.com par ton domaine.
+# Install Caddy: https://caddyserver.com/docs/install
+# sudo caddy run --config /etc/caddy/Caddyfile
+
+api.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8000
+}

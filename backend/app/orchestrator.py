@@ -119,7 +119,9 @@ async def show_diagram(
     mermaid: str,
     explanation: Optional[str] = None,
 ) -> str:
-    """Pin a Mermaid diagram. Use real newlines. Types: graph TD/LR, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, mindmap. Keep ≤10 nodes."""
+    """Pin a Mermaid diagram. Pass raw Mermaid only (no markdown ``` fences). Use real newlines.
+    Types: flowchart TD/LR, graph TD/LR, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, mindmap.
+    Mermaid cannot draw Euclidean geometry (no true triangle-with-angles); use 3-node flowcharts only for structural cycles. Keep ≤10 nodes."""
     card: dict[str, Any] = {"kind": "diagram", "title": title, "body": mermaid}
     if explanation:
         card["explanation"] = explanation
@@ -171,6 +173,8 @@ def _build_specialists() -> dict[str, Agent]:
         instructions=(
             "You render a math card. Call show_math exactly once with the LaTeX body (no $ delimiters). "
             "Prefer a clean canonical form over a verbose one. "
+            "For geometric figures (triangle, angles, polygon, congruence), use LaTeX "
+            "(e.g. \\triangle ABC, \\angle A, similarity) — do not try Mermaid for that. "
             + SPECIALIST_TAIL
         ),
         model=_model(),
@@ -180,17 +184,23 @@ def _build_specialists() -> dict[str, Agent]:
     diagram = Agent(
         name="diagram_specialist",
         handoff_description=(
-            "Visual schema. Use when the professor describes a PROCESS or PIPELINE (graph TD), a "
+            "Visual schema. Use when the professor describes a PROCESS or PIPELINE (flowchart/graph), a "
             "CALL FLOW or message exchange (sequenceDiagram), INHERITANCE / class relationships "
             "(classDiagram), STATE TRANSITIONS or lifecycle (stateDiagram-v2), ENTITY relationships "
-            "(erDiagram), or a TAXONOMY (mindmap). Choose this whenever you'd reach for a whiteboard."
+            "(erDiagram), or a TAXONOMY (mindmap). Choose this whenever you'd reach for a whiteboard. "
+            "NOT for Euclidean geometry (triangle as a shape with angles, ruler-and-compass) — that is math/LaTeX."
         ),
         instructions=(
             "You draw a Mermaid diagram explaining what the professor just described. "
             "Call show_diagram exactly once. Pick the right Mermaid type for the content "
-            "(graph TD for flows, sequenceDiagram for interactions, classDiagram for hierarchies, "
+            "(flowchart TD/LR or graph TD/LR for flows, sequenceDiagram for interactions, classDiagram for hierarchies, "
             "stateDiagram-v2 for lifecycles, erDiagram for data models, mindmap for taxonomies). "
             "Keep it small (≤10 nodes), use real newlines between statements. "
+            "Pass the mermaid argument as RAW syntax only — never wrap it in markdown ``` fences. "
+            "Mermaid cannot render a geometric triangle with angles; if the topic is literally a triangle figure, "
+            "use instead a 3-node cycle only when it represents relationships (A-->B-->C-->A) with short labels; "
+            "otherwise keep the diagram abstract and valid. "
+            "Quote node labels that contain parentheses, brackets, or punctuation: A[\"label (note)\"]. "
             + SPECIALIST_TAIL
         ),
         model=_model(),
@@ -254,8 +264,8 @@ def _build_triage(specialists: dict[str, Agent]) -> Agent:
             "the single word 'skip' if nothing in the new content deserves a card.\n\n"
             "Routing cheatsheet:\n"
             "- programming, syntax, a function/library/CLI → code_specialist\n"
-            "- equation, formula, derivative, integral, matrix → math_specialist\n"
-            "- a process, flow, call sequence, hierarchy, state machine, ER, taxonomy → diagram_specialist\n"
+            "- equation, formula, derivative, integral, matrix, geometric triangle/angles/polygon → math_specialist\n"
+            "- a process, flow, call sequence, hierarchy, state machine, ER, taxonomy (not Euclidean geometry) → diagram_specialist\n"
             "- a major idea or a term being defined → concept_specialist\n"
             "- a worked example or a practice question → example_specialist\n"
             "- intro / announcement / transition / tangent → note_specialist\n\n"
